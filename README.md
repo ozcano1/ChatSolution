@@ -10,6 +10,6 @@ NOTES TO KONUŞARAK ÖĞREN:
 2- There has not been time to write Unit tests.
 ----------------------------------------------------------------------------------
 
-İMPORTANT NOT: Please copy users.db and chatrooms.db to the folder where the server runs 
+IMPORTANT NOT: Please copy users.db and chatrooms.db to the folder where the server runs 
 
 
