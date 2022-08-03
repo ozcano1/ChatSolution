@@ -350,7 +350,7 @@ namespace ChatService.Application.Services
                         {
                             SendMessage(messageJoin, sessionUser.Client.Client);
                             sessionUser.User.LastPost = DateTime.Now;
-                            sessionUser.User.LastPostTQuick = false;
+                            //sessionUser.User.LastPostTQuick = false; ( if one client try to send more than 1 message per second the chat server will warn the client and if this happen again the chat server will close the chat client's connection)
                         }
                         else
                         {
@@ -374,7 +374,7 @@ namespace ChatService.Application.Services
                             else
                             {
                                 sessionUser.User.LastPostTQuick = true;
-                                Console.WriteLine("to quick");
+                                Console.WriteLine("to quick"); //if one client try to send more than 1 message per second the chat server will warn the client 
                             }                                
                         }
                     }
