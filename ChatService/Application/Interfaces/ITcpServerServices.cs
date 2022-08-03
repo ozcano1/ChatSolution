@@ -1,4 +1,5 @@
-﻿using ChatService.Domain;
+﻿using ChatService.Application.Services;
+using ChatService.Domain;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -6,7 +7,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ChatService.ApplicationCore
+namespace ChatService.Application.Interfaces
 {
     public interface ITcpServerServices
     {
@@ -16,7 +17,7 @@ namespace ChatService.ApplicationCore
         public Message GetMessage(Socket socket);
         public void SendMessage(Message message, Socket socket);
         public UserManager GetUserManager();
-        public SessionManager GetSessionManager();
+        public SessionManagerServices GetSessionManager();
         public ChatroomManager GetChatroomManager();
         public void RunServer();
     }

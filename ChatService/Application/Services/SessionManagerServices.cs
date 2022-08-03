@@ -5,12 +5,12 @@ using System.Text;
 using System.Threading.Tasks;
 using ChatService.Exceptions;
 
-namespace ChatService.Domain
+namespace ChatService.Application.Services
 {
     /// <summary>
     /// Handle sessions with a manager
     /// </summary>
-    public class SessionManager
+    public class SessionManagerServices
     {
         List<SessionServices> sessionList;
 
@@ -30,7 +30,7 @@ namespace ChatService.Domain
             }
         }
 
-        public SessionManager()
+        public SessionManagerServices()
         {
             SessionList = new List<SessionServices>();
         }
@@ -71,7 +71,7 @@ namespace ChatService.Domain
 
             if (sessionToDelete == null)
             {
-                throw new SessionUnknownException(token.ToString());
+                //throw new SessionUnknownException(token.ToString());
             }
 
             SessionList.Remove(sessionToDelete);

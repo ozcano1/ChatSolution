@@ -12,6 +12,8 @@ namespace ChatService.Domain
         string login;
         string password;
         Chatroom chatroom;
+        public DateTime LastPost;
+        public bool LastPostTQuick;
 
         public string Login
         {
@@ -56,18 +58,24 @@ namespace ChatService.Domain
         {
             this.Login = "";
             this.Password = "";
+            LastPost = DateTime.Now;
+            LastPostTQuick = false;
         }
 
         public User(string login)
         {
             this.Login = login;
             this.Password = "";
+            LastPost = DateTime.Now;
+            LastPostTQuick = false;
         }
 
         public User(string login, string password)
         {
             this.Login = login;
             this.Password = password;
+            LastPost = DateTime.Now;
+            LastPostTQuick = false;
         }
 
         public int CompareTo(User other)

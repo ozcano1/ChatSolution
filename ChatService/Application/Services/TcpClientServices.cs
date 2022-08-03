@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace ChatService.Application.Services
 {
-    internal class TcpClientServices: ITcpClientServices
+    public class TcpClientServices: ITcpClientServices
     {
         protected volatile TcpClientInfrastructure tcpClientInf;
         private User user;
@@ -20,6 +20,26 @@ namespace ChatService.Application.Services
 
         private Boolean quit=false;
 
+        public TcpClientServices()
+        {
+            user = new User();
+            logged=false;
+        }
+
+        public User GetUser()
+        {
+            return user;
+        }
+
+        public bool IsClientQuitted()
+        {
+            return quit;
+        }
+
+        public void Quit()
+        {
+            quit=true;
+        }
 
         public void ConnectServer(IPAddress ipAddress, int port)
         {
@@ -35,7 +55,7 @@ namespace ChatService.Application.Services
             }
         }
 
-        public Message getMessage()
+        public Message GetMessage()
         {
             if (!quit)
                 return tcpClientInf.GetMessage();
@@ -81,7 +101,7 @@ namespace ChatService.Application.Services
                     if (tcpClientInf.CheckData())
                     {
                         Thread.Sleep(25);
-                        Message message = getMessage();
+                        Message message = GetMessage();
 
                         if (message != null)
                         {
@@ -137,7 +157,7 @@ namespace ChatService.Application.Services
                     break;
 
                 case Message.Header.JOIN:
-                    if (message.MessageList[0] == "success")
+                    if (message.MessageList[0]== "success")
                     {
                         logged = true;
                         Console.WriteLine("- Connection success: " + user.Login);
@@ -183,7 +203,6 @@ namespace ChatService.Application.Services
                 case Message.Header.CREATE_CR:
                     if (message.MessageList[0] == "success")
                     {
-                        SendMessage(new Message(Message.Header.LIST_CR));
                         Console.WriteLine("- Chatroom created: " + message.MessageList[1]);
                     }
                     else
@@ -192,12 +211,9 @@ namespace ChatService.Application.Services
                     }
                     break;
 
-                case Message.Header.LIST_CR:
-
-
-                case Message.Header.LIST_USERS:
-
                 case Message.Header.POST:
+                    Console.WriteLine("- Message received: (" + message.MessageList[0] + ") " + message.MessageList[1]);
+                    break;
             }
         }
 

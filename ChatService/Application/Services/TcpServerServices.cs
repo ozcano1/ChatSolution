@@ -1,5 +1,7 @@
-﻿using ChatService.Domain;
+﻿using ChatService.Application.Interfaces;
+using ChatService.Domain;
 using ChatService.Exceptions;
+using ChatService.Infrastructure.ExternalServices;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,10 +9,10 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ChatService.ApplicationCore
+namespace ChatService.Application.Services
 {
     [Serializable]
-    public abstract class TcpServerServices : ITcpServerServices
+    public class TcpServerServices : ITcpServerServices
     {
         protected volatile TcpServerInfrastructure tcpServerInf;
         protected volatile Boolean running;
@@ -18,6 +20,12 @@ namespace ChatService.ApplicationCore
         protected Thread checkDataThread;
         protected Thread checkQuitThread;
         protected Thread listenerThread;
+
+        UserManager userManager;
+        SessionManagerServices sessionManager;
+        ChatroomManager chatroomManager;
+
+
         public TcpServerServices()
         {
             tcpServerInf = new TcpServerInfrastructure();
@@ -28,8 +36,15 @@ namespace ChatService.ApplicationCore
         {
             return running;
         }
-        public void StartServer(int port)
+        public void StartServer(int port)   
         {
+            userManager = new UserManager();
+            userManager.load("users.db");
+            sessionManager = new SessionManagerServices();
+            chatroomManager = new ChatroomManager();
+            chatroomManager.load("chatrooms.db");
+            readLock = new Object();
+
             string result = tcpServerInf.StartServer(port, "127.0.0.1");
 
             if (result == "OK")
@@ -58,9 +73,6 @@ namespace ChatService.ApplicationCore
             tcpServerInf.SendMessage(message, socket);
         }
 
-        UserManager userManager;
-        SessionManager sessionManager;
-        ChatroomManager chatroomManager;
 
         public volatile Object readLock;
 
@@ -68,7 +80,7 @@ namespace ChatService.ApplicationCore
         {
             return userManager;
         }
-        public SessionManager GetSessionManager()
+        public SessionManagerServices GetSessionManager()
         {
             return sessionManager;
         }
@@ -184,25 +196,25 @@ namespace ChatService.ApplicationCore
 
                     case Message.Header.JOIN_CR:
                         // Before joining a chatroom, let's leave the current one
-                        quitCr(session, message);
+                        quitCr(session, message); // özcan
 
                         try
                         {
-                            List<string> messageList = message.MessageList;
-                            if (chatroomManager.ChatroomList.Any(x => x.Name == messageList[0]))
+                            List<string> MessageList = message.MessageList;
+                            if (chatroomManager.ChatroomList.Any(x => x.Name == MessageList[0]))
                             {
-                                session.User.Chatroom = new Chatroom(messageList[0]);
-                                Console.WriteLine("- " + session.User.Login + " joined the chatroom: " + messageList[0]);
+                                session.User.Chatroom = new Chatroom(MessageList[0]);
+                                Console.WriteLine("- " + session.User.Login + " joined the chatroom: " + MessageList[0]);
 
                                 // Tell the client the channel has been joined
                                 Message messageSuccess = new Message(Message.Header.JOIN_CR);
                                 messageSuccess.addData("success");
-                                messageSuccess.addData(messageList[0]);
+                                messageSuccess.addData(MessageList[0]);
                                 SendMessage(messageSuccess, session.Client.Client);
 
                                 //On broadcast à tous les participants de la conversations l'arrivée de l'utilisateur
                                 Message messagePostBroadcast = new Message(Message.Header.POST);
-                                broadcastToChatRoom(session, "joined the chatroom \"" + messageList[0] + "\"");
+                                broadcastToChatRoom(session, "joined the chatroom \"" + MessageList[0] + "\"");
                             }
                         }
                         catch (ChatroomUnknownException e)
@@ -223,17 +235,17 @@ namespace ChatService.ApplicationCore
                     case Message.Header.CREATE_CR:
                         try
                         {
-                            List<string> messageList = message.MessageList;
-                            chatroomManager.addChatroom(new Chatroom(messageList[0]));
+                            List<string> MessageList = message.MessageList;
+                            chatroomManager.addChatroom(new Chatroom(MessageList[0]));
                             chatroomManager.save("chatrooms.db");
 
                             // Tell the users the chatroom has been created
                             Message messageSuccess = new Message(Message.Header.CREATE_CR);
                             messageSuccess.addData("success");
-                            messageSuccess.addData(messageList[0]);
+                            messageSuccess.addData(MessageList[0]);
                             SendMessage(messageSuccess, session.Client.Client);
 
-                            Console.WriteLine("- " + session.User.Login + " : chatroom has been created: " + messageList[0]);
+                            Console.WriteLine("- " + session.User.Login + " : chatroom has been created: " + MessageList[0]);
                         }
                         catch (ChatroomAlreadyExistsException e)
                         {
@@ -245,43 +257,13 @@ namespace ChatService.ApplicationCore
                         }
                         break;
 
-                    case Message.Header.LIST_CR:
-                        Message messageListCr = new Message(Message.Header.LIST_CR);
-
-                        foreach (Chatroom chatroom in chatroomManager.ChatroomList.ToList())
-                        {
-                            messageListCr.addData(chatroom.Name);
-                        }
-
-                        SendMessage(messageListCr, session.Client.Client);
-                        break;
 
                     case Message.Header.POST:
                         Console.WriteLine("- " + session.User.Login + " : message received : " + message.MessageList[0]);
                         broadcastToChatRoom(session, message.MessageList[0]);
                         break;
 
-                    case Message.Header.LIST_USERS:
-                        List<string> chatroomWantedList = message.MessageList;
-                        string chatroomWanted = chatroomWantedList[0];
 
-                        Message messageListUsers = new Message(Message.Header.LIST_USERS);
-
-                        // For all users currently connected
-                        foreach (SessionServices localSession in sessionManager.SessionList.ToList())
-                        {
-                            // If the user is in the chatroom we want the userlist
-                            if (localSession.User != null &&
-                                localSession.User.Chatroom != null &&
-                                localSession.User.Chatroom.Name == chatroomWanted)
-                            {
-                                messageListUsers.addData(localSession.User.Login);
-                            }
-                        }
-
-                        SendMessage(messageListUsers, session.Client.Client);
-
-                        break;
                 }
             }
             else
@@ -291,8 +273,8 @@ namespace ChatService.ApplicationCore
                     case Message.Header.REGISTER:
                         try
                         {
-                            List<string> messageList = message.MessageList;
-                            userManager.addUser(messageList[0], messageList[1]);
+                            List<string> MessageList = message.MessageList;
+                            userManager.addUser(MessageList[0], MessageList[1]);
                             userManager.save("users.db");
 
                             // Tell the user his account has been created
@@ -300,7 +282,7 @@ namespace ChatService.ApplicationCore
                             messageSuccess.addData("success");
                             SendMessage(messageSuccess, session.Client.Client);
 
-                            Console.WriteLine("- Registration success : " + messageList[0]);
+                            Console.WriteLine("- Registration success : " + MessageList[0]);
                         }
                         catch (UserAlreadyExistsException e)
                         {
@@ -316,9 +298,9 @@ namespace ChatService.ApplicationCore
                     case Message.Header.JOIN:
                         try
                         {
-                            List<string> messageList = message.MessageList;
-                            userManager.authentify(messageList[0], messageList[1]);
-                            session.User = new User(messageList[0], messageList[1]);
+                            List<string> MessageList = message.MessageList;
+                            userManager.authentify(MessageList[0], MessageList[1]);
+                            session.User = new User(MessageList[0], MessageList[1]);
                             userManager.save("users.db");
 
                             Message messageSuccess = new Message(Message.Header.JOIN);
@@ -361,7 +343,40 @@ namespace ChatService.ApplicationCore
                     if (sessionUser.User.Chatroom != null &&
                         sessionUser.User.Chatroom.Name == chatroom.Name)
                     {
-                        SendMessage(messageJoin, sessionUser.Client.Client);
+                        TimeSpan span = DateTime.Now - sessionUser.User.LastPost;
+                        int ms = (int)span.TotalMilliseconds;
+
+                        if (ms > 1000)
+                        {
+                            SendMessage(messageJoin, sessionUser.Client.Client);
+                            sessionUser.User.LastPost = DateTime.Now;
+                            sessionUser.User.LastPostTQuick = false;
+                        }
+                        else
+                        {
+                            if (sessionUser.User.LastPostTQuick)
+                            {
+                                Message messageSuccess = new Message(Message.Header.QUIT);
+                                messageSuccess.addData("success");
+                                SendMessage(messageSuccess, session.Client.Client);
+
+                                if (session.User.Chatroom != null)
+                                {
+                                    // Warn the other users that he left
+                                    broadcastToChatRoom(session, "left the chatroom \"" + session.User.Chatroom.Name + "\"");
+                                }
+
+                                session.Client.Close();
+                                sessionManager.removeSession(session.Token);
+
+                                Console.WriteLine("- User logout: " + session.Token);
+                            }
+                            else
+                            {
+                                sessionUser.User.LastPostTQuick = true;
+                                Console.WriteLine("to quick");
+                            }                                
+                        }
                     }
                 }
 
@@ -384,22 +399,25 @@ namespace ChatService.ApplicationCore
                 {
                     Socket socket = sessionManager.SessionList[i].Client.Client;
 
-                    if (socket.Poll(10, SelectMode.SelectRead) && socket.Available == 0)
-                    {
-                        Console.WriteLine("- User logged out : " + sessionManager.SessionList[i].Token);
-
-                        lock (readLock)
+                    if (socket != null)
+                    { 
+                        if (socket.Poll(10, SelectMode.SelectRead) && socket.Available == 0)
                         {
-                            if (sessionManager.SessionList[i].User != null &&
-                                sessionManager.SessionList[i].User.Chatroom != null)
-                            {
-                                // Tell the other users that he left
-                                broadcastToChatRoom(sessionManager.SessionList[i], "left the chatroom \"" +
-                                    sessionManager.SessionList[i].User.Chatroom.Name + "\"");
-                            }
+                            Console.WriteLine("- User logged out : " + sessionManager.SessionList[i].Token);
 
-                            sessionManager.SessionList[i].Client.Close();
-                            sessionManager.removeSession(sessionManager.SessionList[i].Token);
+                            lock (readLock)
+                            {
+                                if (sessionManager.SessionList[i].User != null &&
+                                    sessionManager.SessionList[i].User.Chatroom != null)
+                                {
+                                    // Tell the other users that he left
+                                    broadcastToChatRoom(sessionManager.SessionList[i], "left the chatroom \"" +
+                                        sessionManager.SessionList[i].User.Chatroom.Name + "\"");
+                                }
+
+                                sessionManager.SessionList[i].Client.Close();
+                                sessionManager.removeSession(sessionManager.SessionList[i].Token);
+                            }
                         }
                     }
                 }

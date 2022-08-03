@@ -6,10 +6,12 @@ using System.Threading.Tasks;
 
 namespace ChatService.Domain
 {
+
+
     [Serializable]
     public class Message
     {
-        public enum Header { REGISTER, JOIN, QUIT, JOIN_CR, QUIT_CR, CREATE_CR, LIST_CR, POST, LIST_USERS }
+        public enum Header { REGISTER, JOIN, QUIT, JOIN_CR, QUIT_CR, CREATE_CR, POST}
         private Header head;
         private List<string> messageList;
 
@@ -65,6 +67,7 @@ namespace ChatService.Domain
         /// <param name="message"></param>
         public void addData(string message)
         {
+            
             this.MessageList.Add(message);
         }
     }

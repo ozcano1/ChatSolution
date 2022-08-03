@@ -9,7 +9,7 @@ using ChatService.Domain;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
 
-namespace ChatService.ApplicationCore
+namespace ChatService.Infrastructure.ExternalServices
 {
     
     public class TcpServerInfrastructure 

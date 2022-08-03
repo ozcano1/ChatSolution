@@ -13,13 +13,12 @@ namespace ChatService.Application.Interfaces
         public void ConnectServer(IPAddress ipAddress, int port);
         public Message GetMessage();
         public void SendMessage(Message message);
-        public UserManager GetUserManager();
-        public SessionManager GetSessionManager();
+
         public void RunCient();
 
         public bool IsClientQuitted();
 
-        public bool Quit();
+        public void Quit();
 
 
     }

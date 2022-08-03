@@ -4,8 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Net.Sockets;
+using ChatService.Domain;
 
-namespace ChatService.Domain
+namespace ChatService.Application.Services
 {
     public class SessionServices
     {
