@@ -6,10 +6,6 @@ If user enters two consecutive messages to quickly it says "to quick"
 If user does that again it disconnects the user.
 ----------------------------------------------------------------------------------
 
-NOTES TO COMPANY NAMED "KONUŞARAK ÖĞREN": 
-1- Because this week was a busy week, unfortunately it is only partially completed.
-2- There has not been time to write Unit tests.
-----------------------------------------------------------------------------------
 
 IMPORTANT NOT: Please copy users.db and chatrooms.db to the folder where the server runs 
 
